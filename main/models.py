@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.urls import reverse
 from django.contrib.auth.models import User
 from ckeditor.fields import RichTextField
 
@@ -9,7 +10,7 @@ class PublishedManager(models.Manager):
     def get_queryset(self):
         return super(PublishedManager, self) \
             .get_queryset() \
-            .filter(status='Published')
+            .filter(status='published')
 
 
 class Post(models.Model):
@@ -34,3 +35,11 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse('main:get_post', args=[
+            self.publish.year,
+            self.publish.month,
+            self.publish.day,
+            self.slug
+        ])
