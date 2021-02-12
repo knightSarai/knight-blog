@@ -24,6 +24,13 @@ SECRET_KEY = ')zbsz2j_$n22vs4b7udxz2m9z-9-^cf_81xo@n!8dk8g%ao(+&'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+#mail
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'mailknightsarai@gmail.com'
+EMAIL_HOST_PASSWORD = 'sharshabeel1200'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
 ALLOWED_HOSTS = []
 
 # Application definition

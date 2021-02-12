@@ -9,7 +9,12 @@
         <p class="date">
             Published {{ post.publish }} by {{ post.author }}
         </p>
-        {{ post.body|safe|truncatewords:30|linebreaks}}
+        {{ post.body|safe|truncatewords:30|linebreaks }}
+        <p>
+            <a href="{% url "main:share_post" post.id %}">
+                Share this post
+            </a>
+        </p>
     {% endfor %}
-    {% include "pagination.html" with page=posts %}
+    {% include "pagination.html" with page=page_obj %}
 {% endblock %}
