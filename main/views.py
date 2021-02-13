@@ -2,9 +2,11 @@ from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
 from django.core.mail import send_mail
+from django.db.models import Count
+from taggit.models import Tag
 
-from .models import Post
-from .forms import EmailPostForm
+from .models import Post, Comment
+from .forms import EmailPostForm, CommentForm
 
 
 class PostListView(ListView):
@@ -14,8 +16,14 @@ class PostListView(ListView):
     template_name = 'post/list.html'
 
 
-def posts_list(request):
+def posts_list(request, tag_slug=None):
     db_posts = Post.published.all()
+    tag = None
+
+    if tag_slug:
+        tag = get_object_or_404(Tag, slug=tag_slug)
+        db_posts = db_posts.filter(tags__in=[tag])
+
     paginator = Paginator(db_posts, 3)
     page_number = request.GET.get('page')
     try:
@@ -25,7 +33,13 @@ def posts_list(request):
     except EmptyPage:
         posts = paginator.page(paginator.num_pages)
 
-    return render(request, 'post/list.html', {'posts': posts})
+    context = {
+        'page': page_number,
+        'posts': posts,
+        'tag': tag
+    }
+
+    return render(request, 'post/list.html', context)
 
 
 def get_post(request, year, month, day, post):
@@ -34,9 +48,34 @@ def get_post(request, year, month, day, post):
                              publish__year=year,
                              publish__month=month,
                              publish__day=day)
-    return render(request,
-                  'post/detail.html',
-                  {'post': post})
+
+    comments = post.comments.filter(active=True)
+    new_comment = None
+    post_tags_ids = post.tags.values_list('id', flat=True)
+    similar_posts = Post.published \
+        .filter(tags__in=post_tags_ids) \
+        .exclude(id=post.id) \
+        .annotate(shared_tags=Count('tags')) \
+        .order_by('-shared_tags', '-publish')[:4]
+
+    if request.method == 'POST':
+        # Create new comment
+        comment_form = CommentForm(data=request.POST)
+        if comment_form.is_valid():
+            new_comment = comment_form.save(commit=False)
+            new_comment.post = post
+            new_comment.save()
+    else:
+        comment_form = CommentForm()
+
+    context = {
+        'post': post,
+        'comments': comments,
+        'new_comment': new_comment,
+        'comment_form': comment_form,
+        'similar_posts': similar_posts
+    }
+    return render(request, 'post/detail.html', context)
 
 
 def post_share(request, post_id):
