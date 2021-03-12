@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 from django.db.models import Count
 from taggit.models import Tag
 
-from .models import Post, Comment
+from .models import Post
 from .forms import EmailPostForm, CommentForm, SearchForm
 
 
