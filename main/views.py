@@ -1,12 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.postgres.search import SearchVector
 from django.views.generic import ListView
 from django.core.mail import send_mail
 from django.db.models import Count
 from taggit.models import Tag
 
 from .models import Post, Comment
-from .forms import EmailPostForm, CommentForm
+from .forms import EmailPostForm, CommentForm, SearchForm
 
 
 class PostListView(ListView):
@@ -53,10 +54,10 @@ def get_post(request, year, month, day, post):
     new_comment = None
     post_tags_ids = post.tags.values_list('id', flat=True)
     similar_posts = Post.published \
-        .filter(tags__in=post_tags_ids) \
-        .exclude(id=post.id) \
-        .annotate(shared_tags=Count('tags')) \
-        .order_by('-shared_tags', '-publish')[:4]
+                        .filter(tags__in=post_tags_ids) \
+                        .exclude(id=post.id) \
+                        .annotate(shared_tags=Count('tags')) \
+                        .order_by('-shared_tags', '-publish')[:4]
 
     if request.method == 'POST':
         # Create new comment
@@ -101,3 +102,26 @@ def post_share(request, post_id):
         'form': form,
         'sent': sent
     })
+
+
+def post_search(request):
+    form = SearchForm()
+    query = None
+    results = []
+
+    if 'query' in request.GET:
+        form = SearchForm(request.GET)
+        if form.is_valid():
+            query = form.cleaned_data['query']
+            results = Post.published.annotate(
+                search=SearchVector('title', 'body'),
+            ).filter(search=query)
+    return render(
+        request,
+        'post/search.html',
+        {
+            'form': form,
+            'results': results,
+            'query': query
+        }
+    )
